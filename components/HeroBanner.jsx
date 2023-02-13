@@ -3,6 +3,8 @@ import Link from 'next/link'
 import React from 'react'
 
 const HeroBanner = ({data}) => {
+  console.log('Hero banner')
+  console.log(data)
   return (
     <div className='hero-banner-container'>
       <div>
@@ -11,7 +13,7 @@ const HeroBanner = ({data}) => {
         <h1>{data?.largeText1}</h1>
         <img src={urlFor(data.image)} alt="headphones" className='hero-banner-image' />
         <div>
-          <Link href={`/product/${data.product}`}>
+          <Link href={`/product/${data?.product}`}>
             <button type='button'>{data?.buttonText}</button>
           </Link>
           <div className='desc'>
