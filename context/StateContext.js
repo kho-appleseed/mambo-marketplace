@@ -1,5 +1,4 @@
-import product from '@/sanity_ecommerce/schemas/product'
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useCallback } from 'react'
 import { toast }   from 'react-hot-toast'
 
 const Context = createContext()
@@ -11,10 +10,7 @@ export const StateContext = ({  children }) => {
     const [totalQuantities, setTotalQuantities] = useState(0)
     const [qty, setQty] = useState(1)
 
-    let foundProduct;
-    let index;
-
-    const onAdd = (product, quantity) => {
+    const onAdd = useCallback((product, quantity) => {
         const checkProductInCart = cartItems.find(item => item._id === product._id)
 
         if (checkProductInCart) {
@@ -22,14 +18,17 @@ export const StateContext = ({  children }) => {
             setTotalQuantities((prev) => prev + quantity)
 
             const updatedCartItems = cartItems.map(item => {
-                if (item._id === product._id) return {
-                    ...item,
-                    quantity: item.quantity + quantity
+                if (item && item._id === product._id) {
+                    return {
+                        ...item,
+                        quantity: item.quantity + quantity
+                    }
                 }
-            })
+                return item
+            }).filter(item => item !== undefined)
 
             setCartItems(updatedCartItems)
-            toast.success(`${qty} ${product.name} added`)
+            toast.success(`${quantity} ${product.name} added`)
         } else {
             setTotalPrice((prev) => prev + (product.price  * quantity))
             setTotalQuantities((prev) => prev + quantity)
@@ -37,37 +36,61 @@ export const StateContext = ({  children }) => {
             product.quantity = quantity
             setCartItems([...cartItems, { ...product }])
 
-            toast.success(`${qty} ${product.name} added to cart`)
+            toast.success(`${quantity} ${product.name} added to cart`)
         }
-    }
+    }, [cartItems])
 
-    const onRemove = (product) => {
-        foundProduct = cartItems.find(item => item._id === product._id)
-        const tempCart = cartItems.filter(item => item._id !== product._id)
-        setTotalPrice(prev => prev - foundProduct.price * foundProduct.quantity)
+    const onRemove = useCallback((product) => {
+        if (!product || !product._id) return
+        
+        const foundProduct = cartItems.find(item => item && item._id === product._id)
+        if (!foundProduct) return
+        
+        const tempCart = cartItems.filter(item => item && item._id !== product._id)
+        setTotalPrice(prev => prev - (foundProduct.price * foundProduct.quantity))
         setTotalQuantities(prev => prev - foundProduct.quantity)
         setCartItems(tempCart)
-    }
+    }, [cartItems])
     
-    const toggleCartItemQuantity = (id, value) => {
-        foundProduct = cartItems.find((item) => item._id === id)
-        index = cartItems.findIndex((item) => item._id === id)
-        const newCartItems = cartItems.filter((item) => item._id === id)
+    const toggleCartItemQuantity = useCallback((id, value) => {
+        if (!id) return
+        
+        const foundProduct = cartItems.find((item) => item && item._id === id)
+        if (!foundProduct) return
+        
+        const index = cartItems.findIndex((item) => item && item._id === id)
+        if (index === -1) return
 
         if (value === 'inc') {
-            foundProduct.quantity += 1
-            // cartItems[index] = foundProduct
+            const updatedCartItems = cartItems.map((item, idx) => {
+                if (idx === index) {
+                    return {
+                        ...item,
+                        quantity: item.quantity + 1
+                    }
+                }
+                return item
+            })
+            setCartItems(updatedCartItems)
             setTotalPrice(prev => prev + foundProduct.price)
             setTotalQuantities(prev => prev + 1)
         } else if (value === 'dec') {
             if (foundProduct.quantity > 1) {
-                foundProduct.quantity -= 1
-                // cartItems[index] = foundProduct
+                const updatedCartItems = cartItems.map((item, idx) => {
+                    if (idx === index) {
+                        return {
+                            ...item,
+                            quantity: item.quantity - 1
+                        }
+                    }
+                    return item
+                })
+                setCartItems(updatedCartItems)
                 setTotalPrice(prev => prev - foundProduct.price)
                 setTotalQuantities(prev => prev - 1)
             }
         }  
-    }
+    }, [cartItems])
 
     const incQty = () => {
         setQty((prev) => prev + 1)

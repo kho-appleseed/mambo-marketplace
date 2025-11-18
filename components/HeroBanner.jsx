@@ -1,10 +1,10 @@
 import { urlFor } from '@/lib/client'
 import Link from 'next/link'
-import React from 'react'
+import React, { memo } from 'react'
 
-const HeroBanner = ({data}) => {
-  console.log('Hero banner')
-  console.log(data)
+const HeroBanner = memo(({data}) => {
+  if (!data) return null
+  
   return (
     <div className='hero-banner-container'>
       <div>
@@ -24,6 +24,8 @@ const HeroBanner = ({data}) => {
       </div>
     </div>
   )
-}
+})
+
+HeroBanner.displayName = 'HeroBanner'
 
 export default HeroBanner

@@ -8,7 +8,8 @@ const Layout = ({children}) => {
   return (
     <div className='layout'>
       <Head>
-        <title>Mab Inc Store</title>
+        <title>Mambo Marketplace</title>
+        <link rel="icon" href="/logo/icon-primary.png" />
       </Head>
       <header>
         <Navbar />
