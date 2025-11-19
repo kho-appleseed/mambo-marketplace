@@ -1,9 +1,25 @@
 import Stripe from 'stripe'
 
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+// Initialize Stripe with error handling
+let stripe;
+try {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    console.error('⚠️  Missing STRIPE_SECRET_KEY environment variable. Please add it to your .env.local file.');
+    console.error('   See .env.local.example for reference.');
+  } else {
+    stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  }
+} catch (error) {
+  console.error('Error initializing Stripe:', error);
+}
 
 export default async function handler(req, res) {
+  if (!stripe) {
+    return res.status(500).json({ 
+      error: 'Stripe is not configured. Please add STRIPE_SECRET_KEY to your .env.local file.' 
+    });
+  }
+
   if (req.method === 'POST') {
     try {
       // Create Checkout Sessions from body params.

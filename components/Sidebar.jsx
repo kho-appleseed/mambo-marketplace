@@ -2,10 +2,10 @@ import React from 'react'
 import SidebarNavItem from './SidebarNavItem'
 
 /**
- * Sidebar component - Navigation sidebar with sections
+ * Sidebar component - Navigation sidebar with sections and categories
  * @param {Object} props
  * @param {Array} props.sections - Array of section objects
- * @param {Array} props.categories - Array of category objects (hidden for now)
+ * @param {Array} props.categories - Array of category objects
  * @param {string} props.activeSection - Currently active section ID
  * @param {string} props.activeCategory - Currently active category ID
  * @param {Function} props.onSectionClick - Handler for section clicks
@@ -29,10 +29,25 @@ const Sidebar = ({
     }
   }
 
+  const handleCategoryClick = (categoryId) => {
+    if (onCategoryClick) {
+      onCategoryClick(categoryId)
+    }
+  }
+
+  // Get categories for each section
+  const getSectionCategories = (sectionId) => {
+    return categories.filter(cat => {
+      if (!cat.section) return false
+      const sectionIdObj = typeof cat.section === 'object' ? cat.section._id : cat.section
+      return sectionIdObj === sectionId
+    }).sort((a, b) => (a.order || 999) - (b.order || 999))
+  }
+
   return (
     <>
       {/* Mobile overlay */}
-      {isOpen && (
+      {isOpen && onClose && (
         <div 
           className="sidebar-overlay" 
           onClick={onClose}
@@ -56,15 +71,37 @@ const Sidebar = ({
         </div>
         
         <nav className="sidebar-nav">
-          {sections.map((section) => (
-            <SidebarNavItem
-              key={section._id}
-              id={section._id}
-              name={section.name}
-              onClick={() => handleSectionClick(section._id)}
-              isActive={activeSection === section._id}
-            />
-          ))}
+          {sections.map((section) => {
+            const sectionCategories = getSectionCategories(section._id)
+            const isSectionActive = activeSection === section._id
+            
+            return (
+              <div key={section._id} className="sidebar-section-group">
+                <SidebarNavItem
+                  id={section._id}
+                  name={section.name}
+                  onClick={() => handleSectionClick(section._id)}
+                  isActive={isSectionActive}
+                  isSection={true}
+                />
+                {/* Show categories when section is active */}
+                {isSectionActive && sectionCategories.length > 0 && (
+                  <div className="sidebar-categories">
+                    {sectionCategories.map((category) => (
+                      <SidebarNavItem
+                        key={category._id}
+                        id={category._id}
+                        name={category.name}
+                        onClick={() => handleCategoryClick(category._id)}
+                        isActive={activeCategory === category._id}
+                        isSection={false}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </nav>
       </aside>
     </>

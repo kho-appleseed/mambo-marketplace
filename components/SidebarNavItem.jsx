@@ -7,16 +7,18 @@ import React, { memo } from 'react'
  * @param {string} props.name - Item name
  * @param {Function} props.onClick - Click handler
  * @param {boolean} props.isActive - Whether item is active/selected
+ * @param {boolean} props.isSection - Whether this is a section (not a category)
  */
 const SidebarNavItem = memo(({
   id,
   name,
   onClick,
-  isActive = false
+  isActive = false,
+  isSection = true
 }) => {
   return (
     <label
-      className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
+      className={`sidebar-nav-item ${isActive ? 'active' : ''} ${isSection ? 'sidebar-section' : 'sidebar-category'}`}
       onClick={(e) => {
         e.stopPropagation()
         if (onClick) onClick()
@@ -32,7 +34,7 @@ const SidebarNavItem = memo(({
     >
       <input
         type="radio"
-        name="section"
+        name={isSection ? "section" : "category"}
         checked={isActive}
         onChange={() => {}}
         className="sidebar-checkbox"

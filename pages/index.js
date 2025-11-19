@@ -1,6 +1,5 @@
-import { Cart, Footer, FooterBanner, HeroBanner, Layout, Navbar, Products } from '@/components'
+import { Cart, Footer, FooterBanner, HeroBanner, Layout, Navbar, Products, Sidebar } from '@/components'
 import Types from '@/components/Types'
-import Sidebar from '@/components/Sidebar'
 import { client } from '@/lib/client'
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/router'
@@ -9,7 +8,6 @@ const Home = ({products, bannerData, sections, categories, productTypes}) => {
   const router = useRouter()
   const [activeCategory, setActiveCategory] = useState(null)
   const [activeProductType, setActiveProductType] = useState(null)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
   
   useEffect(() => {
     // Check for category query param in URL
@@ -162,18 +160,8 @@ const Home = ({products, bannerData, sections, categories, productTypes}) => {
     <>
       <HeroBanner data={bannerData.length && bannerData[0]} />
       
-      {/* Mobile menu toggle button */}
-      <button 
-        className="sidebar-toggle"
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        aria-label="Toggle sidebar"
-      >
-        <span className="sidebar-toggle-icon">☰</span>
-        <span>Categories</span>
-      </button>
-
-      {/* Two-column layout: Sidebar + Content */}
-      <div className="main-layout">
+      {/* Main Content Area with Sidebar */}
+      <div className="content-with-sidebar">
         {/* Sidebar Navigation */}
         <Sidebar
           sections={sections}
@@ -182,10 +170,8 @@ const Home = ({products, bannerData, sections, categories, productTypes}) => {
           activeCategory={activeCategory}
           onSectionClick={handleSectionClick}
           onCategoryClick={handleCategoryClick}
-          isOpen={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
         />
-
+        
         {/* Main Content Area */}
         <main className="main-content">
           {/* Product Types Filter (only show when category is selected) */}
@@ -207,14 +193,6 @@ const Home = ({products, bannerData, sections, categories, productTypes}) => {
                 : 'Best Selling Products'
               }
             </h2>
-            <p>
-              {activeCategory 
-                ? activeProductType
-                  ? `Products in ${activeCategoryData?.name} - ${activeProductTypeName}`
-                  : `Products in ${activeCategoryData?.name}`
-                : 'Speakers of many variations'
-              }
-            </p>
           </div>
           <div className='products-container'>
             {filteredProducts?.map((product) => <Products key={product._id} data={product} />)}

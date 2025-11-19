@@ -15,6 +15,11 @@ const Cart = () => {
   const handleCheckout = async () => {
     const stripe = await getStripe()
 
+    if (!stripe) {
+      toast.error('Stripe is not configured. Please check your environment variables.')
+      return
+    }
+
     const response = await fetch('/api/stripe', {
       method: 'POST',
       headers: {
@@ -23,7 +28,11 @@ const Cart = () => {
       body: JSON.stringify(cartItems)
     })
 
-    if (response.statusCode === 500) return
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Failed to create checkout session' }))
+      toast.error(error.error || 'Failed to create checkout session')
+      return
+    }
 
     const data = await response.json()
     toast.loading('Redirecting...')
