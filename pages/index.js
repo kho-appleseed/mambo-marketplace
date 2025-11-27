@@ -1,4 +1,4 @@
-import { Cart, Footer, FooterBanner, HeroBanner, Layout, Navbar, Products, Sidebar } from '@/components'
+import { Cart, Footer, FooterBanner, HeroBanner, Layout, Navbar, Products } from '@/components'
 import Types from '@/components/Types'
 import { client } from '@/lib/client'
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
@@ -8,18 +8,41 @@ const Home = ({products, bannerData, sections, categories, productTypes}) => {
   const router = useRouter()
   const [activeCategory, setActiveCategory] = useState(null)
   const [activeProductType, setActiveProductType] = useState(null)
+  const [activeSection, setActiveSection] = useState(null)
   
   useEffect(() => {
-    // Check for category query param in URL
+    // Check for section query param in URL
+    const sectionSlug = router.query.section
     const categorySlug = router.query.category
     const productTypeSlug = router.query.productType
     
-    if (categorySlug && typeof categorySlug === 'string') {
+    // Auto-select first section if no query params exist
+    if (!sectionSlug && !categorySlug && sections.length > 0) {
+      const firstSection = sections[0]
+      if (firstSection.slug?.current) {
+        router.push(`/?section=${firstSection.slug.current}`, undefined, { shallow: true })
+        return // Exit early, let the next render handle the section
+      }
+    }
+    
+    // Handle section from URL
+    if (sectionSlug && typeof sectionSlug === 'string') {
+      const section = sections.find(sec => sec.slug?.current === sectionSlug)
+      if (section) {
+        setActiveSection(section._id)
+        setActiveCategory(null) // Clear category when section is selected
+        setActiveProductType(null) // Clear product type when section is selected
+      }
+    }
+    
+    // Handle category (only if no section is active)
+    if (categorySlug && typeof categorySlug === 'string' && !sectionSlug) {
       const category = categories.find(cat => cat.slug?.current === categorySlug)
       if (category) {
         setActiveCategory(category._id)
+        setActiveSection(null) // Clear section when category is selected
       }
-    } else if (!categorySlug) {
+    } else if (!categorySlug && !sectionSlug) {
       setActiveCategory(null)
     }
     
@@ -32,7 +55,7 @@ const Home = ({products, bannerData, sections, categories, productTypes}) => {
     } else if (!productTypeSlug) {
       setActiveProductType(null)
     }
-  }, [router.query.category, router.query.productType, categories, productTypes])
+  }, [router.query.section, router.query.category, router.query.productType, sections, categories, productTypes, router])
   
   // Get available product types for the active category
   const availableProductTypes = useMemo(() => {
@@ -43,83 +66,45 @@ const Home = ({products, bannerData, sections, categories, productTypes}) => {
     }).sort((a, b) => (a.order || 999) - (b.order || 999))
   }, [activeCategory, productTypes])
   
-  // Filter products by selected category and product type
+  // Get categories for active section
+  const activeSectionCategories = useMemo(() => {
+    if (!activeSection) return []
+    return categories.filter(cat => {
+      const sectionId = typeof cat.section === 'object' ? cat.section._id : cat.section
+      return sectionId === activeSection
+    }).map(cat => cat._id)
+  }, [activeSection, categories])
+
+  // Filter products by selected section, category and product type
   const filteredProducts = useMemo(() => {
     let filtered = products
     
-    if (activeCategory) {
+    // Filter by section (all categories in that section)
+    if (activeSection && activeSectionCategories.length > 0) {
+      filtered = filtered.filter(product => {
+        const productCategoryId = product.category?._id
+        return activeSectionCategories.includes(productCategoryId)
+      })
+    }
+    
+    // Filter by category (only if no section is active)
+    if (activeCategory && !activeSection) {
       filtered = filtered.filter(product => product.category?._id === activeCategory)
     }
     
+    // Filter by product type
     if (activeProductType) {
       filtered = filtered.filter(product => product.productType?._id === activeProductType)
     }
     
     // If no filters are active, show 5 products for "Best Selling Products"
     // Use first 5 to avoid hydration mismatch (Math.random differs between server/client)
-    if (!activeCategory && !activeProductType && filtered.length > 0) {
+    if (!activeSection && !activeCategory && !activeProductType && filtered.length > 0) {
       return filtered.slice(0, 5)
     }
     
     return filtered
-  }, [products, activeCategory, activeProductType])
-
-  const [activeSection, setActiveSection] = useState(null)
-
-  // Auto-select first section on mount
-  useEffect(() => {
-    if (sections && sections.length > 0 && !activeSection) {
-      const firstSection = sections[0]
-      setActiveSection(firstSection._id)
-    }
-  }, [sections, activeSection])
-
-  // Get categories for active section from Sanity data
-  const activeSectionCategories = useMemo(() => {
-    if (!activeSection || !categories || !categories.length) return []
-    return categories.filter(cat => {
-      if (!cat.section) return false
-      const sectionId = typeof cat.section === 'object' ? cat.section._id : cat.section
-      return sectionId === activeSection
-    }).sort((a, b) => (a.order || 999) - (b.order || 999))
-  }, [activeSection, categories])
-
-  // Auto-select first category when section is selected (only if no URL param)
-  useEffect(() => {
-    const categorySlug = router.query.category
-    if (activeSection && activeSectionCategories.length > 0 && !activeCategory && !categorySlug) {
-      const firstCategory = activeSectionCategories[0]
-      setActiveCategory(firstCategory._id)
-      // Update URL
-      if (firstCategory.slug?.current) {
-        router.push(`/?category=${firstCategory.slug.current}`, undefined, { shallow: true })
-      }
-    }
-  }, [activeSection, activeSectionCategories, activeCategory, router.query.category, router])
-  
-  // Get active section data
-  const activeSectionData = useMemo(() => {
-    if (!activeSection || !sections || !sections.length) return null
-    return sections.find(s => s._id === activeSection)
-  }, [activeSection, sections])
-
-  const handleSectionClick = useCallback((sectionId) => {
-    setActiveSection(sectionId)
-    // Auto-select first category in section
-    const sectionCategories = categories.filter(cat => {
-      if (!cat.section) return false
-      const sectionIdObj = typeof cat.section === 'object' ? cat.section._id : cat.section
-      return sectionIdObj === sectionId
-    }).sort((a, b) => (a.order || 999) - (b.order || 999))
-    
-    if (sectionCategories.length > 0 && !activeCategory) {
-      const firstCategory = sectionCategories[0]
-      setActiveCategory(firstCategory._id)
-      if (firstCategory.slug?.current) {
-        router.push(`/?category=${firstCategory.slug.current}`, undefined, { shallow: true })
-      }
-    }
-  }, [categories, activeCategory, router])
+  }, [products, activeSection, activeSectionCategories, activeCategory, activeProductType])
 
   const handleCategoryClick = useCallback((categoryId) => {
     // Handle category clicks
@@ -146,6 +131,11 @@ const Home = ({products, bannerData, sections, categories, productTypes}) => {
     }
   }, [productTypes, categories, activeCategory, router])
   
+  const activeSectionData = useMemo(() => 
+    sections.find(s => s._id === activeSection),
+    [sections, activeSection]
+  )
+  
   const activeCategoryData = useMemo(() => 
     categories.find(c => c._id === activeCategory),
     [categories, activeCategory]
@@ -160,19 +150,8 @@ const Home = ({products, bannerData, sections, categories, productTypes}) => {
     <>
       <HeroBanner data={bannerData.length && bannerData[0]} />
       
-      {/* Main Content Area with Sidebar */}
-      <div className="content-with-sidebar">
-        {/* Sidebar Navigation */}
-        <Sidebar
-          sections={sections}
-          categories={categories}
-          activeSection={activeSection}
-          activeCategory={activeCategory}
-          onSectionClick={handleSectionClick}
-          onCategoryClick={handleCategoryClick}
-        />
-        
-        {/* Main Content Area */}
+      {/* Main Content Area */}
+      <div className="main-content-wrapper">
         <main className="main-content">
           {/* Product Types Filter (only show when category is selected) */}
           {activeCategory && availableProductTypes.length > 0 && (
@@ -186,11 +165,13 @@ const Home = ({products, bannerData, sections, categories, productTypes}) => {
           {/* Products Section */}
           <div className='products-heading'>
             <h2>
-              {activeCategory 
-                ? activeProductType
-                  ? `${activeCategoryData?.name} - ${activeProductTypeName}`
-                  : activeCategoryData?.name
-                : 'Best Selling Products'
+              {activeSection
+                ? activeSectionData?.name
+                : activeCategory 
+                  ? activeProductType
+                    ? `${activeCategoryData?.name} - ${activeProductTypeName}`
+                    : activeCategoryData?.name
+                  : 'Best Selling Products'
               }
             </h2>
           </div>

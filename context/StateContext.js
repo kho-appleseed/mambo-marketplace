@@ -3,12 +3,14 @@ import { toast }   from 'react-hot-toast'
 
 const Context = createContext()
 
-export const StateContext = ({  children }) => {
+export const StateContext = ({  children, sections = [], categories = [] }) => {
     const [showCart, setShowCart] = useState(false)
     const [cartItems, setCartItems] = useState([])
     const [totalPrice, setTotalPrice] = useState(0)
     const [totalQuantities, setTotalQuantities] = useState(0)
     const [qty, setQty] = useState(1)
+    const [globalSections, setGlobalSections] = useState(sections)
+    const [globalCategories, setGlobalCategories] = useState(categories)
 
     const onAdd = useCallback((product, quantity) => {
         const checkProductInCart = cartItems.find(item => item._id === product._id)
@@ -120,7 +122,9 @@ export const StateContext = ({  children }) => {
                 decQty,
                 onAdd,
                 toggleCartItemQuantity,
-                onRemove
+                onRemove,
+                sections: globalSections,
+                categories: globalCategories
             }}>
             {children}
         </Context.Provider>
